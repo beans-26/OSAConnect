@@ -68,17 +68,15 @@ CREATE TABLE IF NOT EXISTS service_sessions (
     FOREIGN KEY (violation_id) REFERENCES violations(id) ON DELETE CASCADE
 );
 
--- Seed Data (Default passwords: password123)
--- Admin/Staff/Guard passwords should be hashed in production
-INSERT INTO departments (name, code) VALUES 
+INSERT IGNORE INTO departments (name, code) VALUES 
 ('College of Engineering', 'COE'),
 ('College of Arts and Sciences', 'CAS'),
 ('College of Business', 'COB'),
 ('College of Information Technology', 'CIT');
 
-INSERT INTO users (username, password_hash, full_name, role) VALUES
+INSERT IGNORE INTO users (username, password_hash, full_name, role) VALUES
 ('Staff01', 'StaffPass', 'OSA Staff One', 'Staff'),
 ('Guard01', 'GuardPass', 'Security Guard One', 'Guard');
 
-INSERT INTO students (student_id, password_hash, first_name, last_name, email, course, year_level, department_id) VALUES
+INSERT IGNORE INTO students (student_id, password_hash, first_name, last_name, email, course, year_level, department_id) VALUES
 ('Student01', 'StuPass', 'John', 'Doe', 'john@example.com', 'BSCS', 1, 4);

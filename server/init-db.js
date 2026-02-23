@@ -6,13 +6,18 @@ require('dotenv').config();
 async function initializeDatabase() {
     console.log('--- Database Initialization ---');
 
-    // Connect without database initially
-    const connection = await mysql.createConnection({
+    const connectionConfig = process.env.MYSQL_URL || {
         host: process.env.DB_HOST,
         user: process.env.DB_USER,
         password: process.env.DB_PASS,
-        multipleStatements: true // Essential for running setup.sql
-    });
+        multipleStatements: true
+    };
+
+    const connection = await mysql.createConnection(connectionConfig);
+    // Enable multiple statements if it's a connection string
+    if (typeof connectionConfig === 'string') {
+        connection.config.multipleStatements = true;
+    }
 
     try {
         console.log('Reading setup.sql...');
