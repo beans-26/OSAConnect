@@ -185,7 +185,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
             showApp();
         } catch (err) {
-            loginError.innerText = err.message;
+            console.error('Login Error:', err);
+            loginError.innerText = err.message || 'An unexpected error occurred';
             loginError.classList.remove('hidden');
         }
     };
