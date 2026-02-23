@@ -131,10 +131,18 @@ app.post('/api/auth/login', async (req, res) => {
             student_id: user.student_id || null
         });
     } catch (err) {
-        console.error('Detailed Login Error:', err);
+        console.error('--- LOGIN ERROR ---');
+        console.error('Context:', { username: req.body?.username });
+        console.error('Error Object:', err);
+
+        // Detailed error for debugging (will show up in Railway logs)
+        const errorMessage = err instanceof Error ? err.message : String(err);
+        const errorCode = err.code || 'NO_CODE';
+
         res.status(500).json({
-            error: `Server Error: ${err.message || 'Unknown Error'}`,
-            code: err.code || 'INTERNAL_ERROR'
+            error: `Server Error: ${errorMessage || 'Unknown Error'}`,
+            code: errorCode,
+            details: process.env.NODE_ENV === 'development' ? err.stack : undefined
         });
     }
 });
