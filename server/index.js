@@ -447,6 +447,8 @@ app.get('/api/health', async (req, res) => {
         res.json({
             status: 'OK',
             database: 'Connected',
+            db_host: process.env.MYSQLHOST || process.env.DB_HOST || 'localhost',
+            using_url: !!process.env.MYSQL_URL,
             tables_found: tables.length,
             departments: deptCount[0].count,
             time: new Date().toISOString()

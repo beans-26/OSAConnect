@@ -1,6 +1,7 @@
 const mysql = require('mysql2');
 require('dotenv').config();
 
+const isURL = !!process.env.MYSQL_URL;
 const dbConfig = process.env.MYSQL_URL || {
     host: process.env.MYSQLHOST || process.env.DB_HOST || 'localhost',
     user: process.env.MYSQLUSER || process.env.DB_USER || 'root',
@@ -11,6 +12,17 @@ const dbConfig = process.env.MYSQL_URL || {
     connectionLimit: 10,
     queueLimit: 0
 };
+
+if (isURL) {
+    console.log('🔗 Connecting to Database via MYSQL_URL');
+} else {
+    console.log('🔗 Database Config:', {
+        host: dbConfig.host,
+        user: dbConfig.user,
+        database: dbConfig.database,
+        port: dbConfig.port
+    });
+}
 
 const pool = mysql.createPool(dbConfig);
 
