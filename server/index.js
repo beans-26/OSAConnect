@@ -113,8 +113,11 @@ app.post('/api/auth/login', async (req, res) => {
             student_id: user.student_id
         });
     } catch (err) {
-        console.error('Login error:', err);
-        res.status(500).json({ error: `Login error: ${err.message}` });
+        console.error('Detailed Login Error:', err);
+        res.status(500).json({
+            error: `Database Error: ${err.message || 'Unknown Error'}`,
+            code: err.code || 'NO_CODE'
+        });
     }
 });
 

@@ -13,4 +13,13 @@ const dbConfig = process.env.MYSQL_URL || {
 
 const pool = mysql.createPool(dbConfig);
 
+// Final Database Connectivity Check
+pool.getConnection((err, conn) => {
+    if (err) console.error('❌ DATABASE CONNECTION FAILED:', err.message);
+    else {
+        console.log('✅ DATABASE CONNECTED SUCCESSFULLY');
+        conn.release();
+    }
+});
+
 module.exports = pool.promise();
