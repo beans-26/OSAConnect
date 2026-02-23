@@ -1,5 +1,4 @@
-CREATE DATABASE IF NOT EXISTS student_violation_db;
-USE student_violation_db;
+-- SQL Setup for OSAConnect
 
 CREATE TABLE IF NOT EXISTS departments (
     id INT AUTO_INCREMENT PRIMARY KEY,

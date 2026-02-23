@@ -444,6 +444,20 @@ Use the Mobile URL to access the app from your phone on the same Wi-Fi.
     try {
         await db.query('SELECT 1');
         console.log('✅ Database connected successfully!');
+
+        // --- AUTO-SEED DEPARTMENTS ---
+        const [rows] = await db.query('SELECT COUNT(*) as count FROM departments');
+        if (rows[0].count === 0) {
+            console.log('🌱 Seeding default departments...');
+            await db.query(`
+                INSERT INTO departments (name, code) VALUES 
+                ('College of Engineering', 'COE'),
+                ('College of Arts and Sciences', 'CAS'),
+                ('College of Business', 'COB'),
+                ('College of Information Technology', 'CIT')
+            `);
+            console.log('✅ Seeding complete!');
+        }
     } catch (err) {
         console.error('❌ Database connection failed:', err.message);
     }
