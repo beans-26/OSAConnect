@@ -28,7 +28,8 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 
 app.use(cors());
-app.use(bodyParser.json());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 app.use(express.static('public'));
 app.use('/uploads', express.static('uploads'));
 
@@ -47,7 +48,7 @@ const authenticate = (req, res, next) => {
 
 const authorize = (roles = []) => {
     return (req, res, next) => {
-        if (!roles.includes(req.user.role)) {
+        if (!req.user || !roles.includes(req.user.role)) {
             return res.status(403).json({ error: 'Access denied' });
         }
         next();
@@ -66,9 +67,19 @@ io.on('connection', (socket) => {
 
 // Auth Routes
 app.post('/api/auth/login', async (req, res) => {
-    const { username, password } = req.body;
-    console.log('Login attempt for:', username);
     try {
+        if (!req.body) {
+            return res.status(400).json({ error: 'Missing request body' });
+        }
+
+        const { username, password } = req.body;
+
+        if (!username || !password) {
+            return res.status(400).json({ error: 'Username and password are required' });
+        }
+
+        console.log('Login attempt for:', username);
+
         let user;
         // Search in users table (Staff/Guard)
         const [staffRows] = await db.query('SELECT * FROM users WHERE username = ?', [username]);
@@ -86,10 +97,10 @@ app.post('/api/auth/login', async (req, res) => {
         }
 
         if (!user || !user.password_hash) {
-            return res.status(401).json({ error: 'Account data incomplete or not found.' });
+            return res.status(401).json({ error: 'Account not found or password not set.' });
         }
 
-        // Support both hashed and legacy plain text (for initial testing data)
+        // Support both hashed and legacy plain text
         let isValid = false;
         try {
             if (user.password_hash.startsWith('$2')) {
@@ -99,24 +110,31 @@ app.post('/api/auth/login', async (req, res) => {
             }
         } catch (bcryptErr) {
             console.error('Bcrypt error:', bcryptErr);
-            return res.status(500).json({ error: 'Error validating password.' });
+            return res.status(500).json({ error: 'Error validating password security.' });
         }
 
         if (!isValid) return res.status(401).json({ error: 'Incorrect password. Please try again.' });
 
-        const token = jwt.sign({ id: user.id || user.student_id, role: user.role, username: user.username }, JWT_SECRET);
+        // Ensure we have a valid ID for the token
+        const userId = user.id || user.student_id;
+        const token = jwt.sign(
+            { id: userId, role: user.role, username: user.username },
+            JWT_SECRET,
+            { expiresIn: '24h' }
+        );
+
         res.json({
-            id: user.id || user.student_id,
+            id: userId,
             token,
             role: user.role,
             name: (user.full_name || `${user.first_name || ''} ${user.last_name || ''}`).trim() || user.username,
-            student_id: user.student_id
+            student_id: user.student_id || null
         });
     } catch (err) {
         console.error('Detailed Login Error:', err);
         res.status(500).json({
-            error: `Database Error: ${err.message || 'Unknown Error'}`,
-            code: err.code || 'NO_CODE'
+            error: `Server Error: ${err.message || 'Unknown Error'}`,
+            code: err.code || 'INTERNAL_ERROR'
         });
     }
 });
@@ -381,21 +399,6 @@ app.put('/api/violations/:id/archive', authenticate, authorize(['Staff', 'Admin'
 });
 
 // Student Data Management
-app.get('/api/students/id/:student_id', authenticate, async (req, res) => {
-    try {
-        const [rows] = await db.query(`
-            SELECT s.*, d.name as department_name 
-            FROM students s 
-            LEFT JOIN departments d ON s.department_id = d.id 
-            WHERE s.student_id = ?
-        `, [req.params.student_id]);
-
-        if (rows.length === 0) return res.status(404).json({ error: 'Student not found' });
-        res.json(rows[0]);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
 
 app.get('/api/students', authenticate, authorize(['Staff', 'Admin']), async (req, res) => {
     try {
