@@ -430,6 +430,22 @@ app.get('/api/departments', authenticate, async (req, res) => {
     }
 });
 
+app.get('/api/health', async (req, res) => {
+    try {
+        const [tables] = await db.query('SHOW TABLES');
+        const [deptCount] = await db.query('SELECT COUNT(*) as count FROM departments');
+        res.json({
+            status: 'OK',
+            database: 'Connected',
+            tables_found: tables.length,
+            departments: deptCount[0].count,
+            time: new Date().toISOString()
+        });
+    } catch (err) {
+        res.status(500).json({ status: 'ERROR', message: err.message });
+    }
+});
+
 server.listen(PORT, '0.0.0.0', async () => {
     const os = require('os');
     const interfaces = os.networkInterfaces();
