@@ -4,19 +4,28 @@ const path = require('path');
 require('dotenv').config();
 
 async function initializeDatabase() {
-    console.log('--- Database Initialization ---');
+    console.log('--- 🛡️ OSA Connect Database Initialization ---');
 
-    const connectionConfig = process.env.MYSQL_URL || {
-        host: process.env.DB_HOST,
-        user: process.env.DB_USER,
-        password: process.env.DB_PASS,
-        multipleStatements: true
-    };
-
-    const connection = await mysql.createConnection(connectionConfig);
-    // Enable multiple statements if it's a connection string
-    if (typeof connectionConfig === 'string') {
-        connection.config.multipleStatements = true;
+    let connection;
+    try {
+        if (process.env.MYSQL_URL) {
+            console.log('Connecting via MYSQL_URL...');
+            // Railway fix: Ensure multipleStatements is allowed in the connection
+            let url = process.env.MYSQL_URL;
+            url += (url.includes('?') ? '&' : '?') + 'multipleStatements=true';
+            connection = await mysql.createConnection(url);
+        } else {
+            console.log('Connecting via individual variables...');
+            connection = await mysql.createConnection({
+                host: process.env.DB_HOST,
+                user: process.env.DB_USER,
+                password: process.env.DB_PASS,
+                multipleStatements: true
+            });
+        }
+    } catch (err) {
+        console.error('❌ Could not connect to database for init:', err.message);
+        process.exit(1);
     }
 
     try {
