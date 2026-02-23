@@ -85,16 +85,21 @@ app.post('/api/auth/login', async (req, res) => {
             }
         }
 
-        if (!user) {
-            return res.status(401).json({ error: 'Account not found. Please register first.' });
+        if (!user || !user.password_hash) {
+            return res.status(401).json({ error: 'Account data incomplete or not found.' });
         }
 
         // Support both hashed and legacy plain text (for initial testing data)
         let isValid = false;
-        if (user.password_hash.startsWith('$2')) {
-            isValid = await bcrypt.compare(password, user.password_hash);
-        } else {
-            isValid = (password === user.password_hash);
+        try {
+            if (user.password_hash.startsWith('$2')) {
+                isValid = await bcrypt.compare(password, user.password_hash);
+            } else {
+                isValid = (password === user.password_hash);
+            }
+        } catch (bcryptErr) {
+            console.error('Bcrypt error:', bcryptErr);
+            return res.status(500).json({ error: 'Error validating password.' });
         }
 
         if (!isValid) return res.status(401).json({ error: 'Incorrect password. Please try again.' });
@@ -104,12 +109,12 @@ app.post('/api/auth/login', async (req, res) => {
             id: user.id || user.student_id,
             token,
             role: user.role,
-            name: (user.full_name || `${user.first_name} ${user.last_name}`).trim(),
+            name: (user.full_name || `${user.first_name || ''} ${user.last_name || ''}`).trim() || user.username,
             student_id: user.student_id
         });
     } catch (err) {
         console.error('Login error:', err);
-        res.status(500).json({ error: 'Server error during login. Please try again later.' });
+        res.status(500).json({ error: `Login error: ${err.message}` });
     }
 });
 
