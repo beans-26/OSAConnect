@@ -133,16 +133,18 @@ app.post('/api/auth/login', async (req, res) => {
     } catch (err) {
         console.error('--- LOGIN ERROR ---');
         console.error('Context:', { username: req.body?.username });
-        console.error('Error Object:', err);
+        console.error('Error Details:', err);
 
-        // Detailed error for debugging (will show up in Railway logs)
-        const errorMessage = err instanceof Error ? err.message : String(err);
-        const errorCode = err.code || 'NO_CODE';
+        const errorInfo = {
+            message: err.message || 'No message property',
+            stack: err.stack || 'No stack trace',
+            code: err.code || 'No code property',
+            raw: String(err)
+        };
 
         res.status(500).json({
-            error: `Server Error: ${errorMessage || 'Unknown Error'}`,
-            code: errorCode,
-            details: process.env.NODE_ENV === 'development' ? err.stack : undefined
+            error: `Login Failed: ${errorInfo.message}`,
+            debug: errorInfo
         });
     }
 });
