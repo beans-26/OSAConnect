@@ -74,13 +74,11 @@ app.post('/api/auth/login', async (req, res) => {
         const [staffRows] = await db.query('SELECT * FROM users WHERE username = ?', [username]);
 
         if (staffRows.length > 0) {
-            console.log('Found in users table');
             user = staffRows[0];
         } else {
             // Search in students table
             const [studentRows] = await db.query('SELECT * FROM students WHERE student_id = ?', [username]);
             if (studentRows.length > 0) {
-                console.log('Found in students table');
                 user = studentRows[0];
                 user.username = user.student_id;
                 user.role = 'Student';
@@ -88,43 +86,51 @@ app.post('/api/auth/login', async (req, res) => {
         }
 
         if (!user) {
-            console.log('User NOT found in database');
-            return res.status(401).json({ error: 'User not found in database. Did you run setup.sql?' });
+            return res.status(401).json({ error: 'Account not found. Please register first.' });
         }
 
-        const isValid = (password === user.password_hash);
-        if (!isValid) return res.status(401).json({ error: 'Invalid credentials. Check your password.' });
+        // Support both hashed and legacy plain text (for initial testing data)
+        let isValid = false;
+        if (user.password_hash.startsWith('$2')) {
+            isValid = await bcrypt.compare(password, user.password_hash);
+        } else {
+            isValid = (password === user.password_hash);
+        }
+
+        if (!isValid) return res.status(401).json({ error: 'Incorrect password. Please try again.' });
 
         const token = jwt.sign({ id: user.id || user.student_id, role: user.role, username: user.username }, JWT_SECRET);
         res.json({
             id: user.id || user.student_id,
             token,
             role: user.role,
-            name: user.full_name || user.first_name,
+            name: (user.full_name || `${user.first_name} ${user.last_name}`).trim(),
             student_id: user.student_id
         });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        console.error('Login error:', err);
+        res.status(500).json({ error: 'Server error during login. Please try again later.' });
     }
 });
 
 app.post('/api/auth/register', async (req, res) => {
     const { student_id, password, first_name, last_name, email, course, year_level, department_id } = req.body;
     try {
-        // Check if student already exists
         const [existing] = await db.query('SELECT * FROM students WHERE student_id = ?', [student_id]);
         if (existing.length > 0) {
-            return res.status(400).json({ error: 'Student ID already registered.' });
+            return res.status(400).json({ error: 'This Student ID is already registered.' });
         }
 
+        const hashedPassword = await bcrypt.hash(password, 10);
         await db.query(
             'INSERT INTO students (student_id, password_hash, first_name, last_name, email, course, year_level, department_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-            [student_id, password, first_name, last_name, email, course, year_level, department_id]
+            [student_id, hashedPassword, first_name, last_name, email, course, year_level, department_id]
         );
 
         res.json({ message: 'Registration successful! You can now log in.' });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        console.error('Registration error:', err);
+        res.status(500).json({ error: 'Registration failed. Please check your details.' });
     }
 });
 
