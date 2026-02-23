@@ -135,16 +135,10 @@ app.post('/api/auth/login', async (req, res) => {
         console.error('Context:', { username: req.body?.username });
         console.error('Error Details:', err);
 
-        const errorInfo = {
-            message: err.message || 'No message property',
-            stack: err.stack || 'No stack trace',
-            code: err.code || 'No code property',
-            raw: String(err)
-        };
+        const errorInfo = `[${err.code || 'NO_CODE'}] ${err.message || String(err)}`;
 
         res.status(500).json({
-            error: `Login Failed: ${errorInfo.message}`,
-            debug: errorInfo
+            error: `Login Failed: ${errorInfo}`
         });
     }
 });
